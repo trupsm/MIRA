@@ -1,58 +1,77 @@
-// backend/routes/chat.js
-const express = require('express');
+import express from "express";
+import fs from "fs";
+import dotenv from "dotenv";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+dotenv.config();
 const router = express.Router();
-const fetch = require('node-fetch');
-const auth = require('../middleware/auth');
-require('dotenv').config();
 
-const MIRA_AGENT_URL = process.env.MIRA_AGENT_URL || 'http://localhost:8001/api/mira_chat';
+// Initialize Gemini
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-/**
- * POST /api/chat
- * Requires: Authorization Bearer <JWT>
- * Body: { "message": "..." }
- * Response: { response, crisis_detected, severity, contact_notified }
- */
-router.post('/', auth, async (req, res) => {
-  const message = req.body.message?.trim();
-  const userId = req.user?.id;
+// Load dataset for contextual grounding
+let dataset = [];
+try {
+  const data = fs.readFileSync("train/merged_mira.json", "utf-8");
+  dataset = JSON.parse(data);
+  console.log(`🧠 Loaded ${dataset.length} examples for contextual grounding`);
+} catch (err) {
+  console.log("⚠️ Dataset not found or unreadable:", err.message);
+}
 
-  if (!message)
-    return res.status(400).json({ message: 'Message required' });
+// ---------------- CUSTOM PROMPT ----------------
+const SYSTEM_PROMPT = `
+You are MIRA — a friendly and empathetic mental health companion.
 
+💡 Your Goals:
+- Listen actively to the user's emotions.
+- Respond with compassion, clarity, and psychological safety.
+- Offer coping strategies, motivation, and mindfulness.
+- Never give medical diagnosis; instead encourage professional help when serious.
+
+💬 Tone: Warm, encouraging, and understanding.
+
+Use insights from the provided dataset (examples of supportive dialogue) if relevant.
+`;
+// ------------------------------------------------
+
+// POST /api/chat
+router.post("/", async (req, res) => {
   try {
-    // 🔹 Directly forward to Mira Agent (Flask)
-    const r = await fetch(MIRA_AGENT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, message })
-    });
+    const { message } = req.body;
 
-    // Handle connection or parsing errors gracefully
-    if (!r.ok) {
-      const text = await r.text();
-      console.error('❌ Mira agent error:', text);
-      return res.status(500).json({
-        message: 'Chat failed: Mira agent unreachable',
-        error: text
-      });
+    if (!message) {
+      return res.status(400).json({ error: "Message is required." });
     }
 
-    const data = await r.json();
+    // ✅ Use the working Gemini 2.0 Flash model
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
 
-    // ✅ Send back structured response
-    res.json({
-      message: 'MIRA chat success',
-      response: data.response,
-      crisis_detected: data.crisis_detected,
-      severity: data.severity,
-      severity_score: data.severity_score,
-      contact_notified: data.contact_notified
-    });
-  } catch (err) {
-    console.error('❌ Chat route error:', err);
-    res.status(500).json({ message: 'Chat failed', error: err.message });
+    // Add relevant examples for contextual support
+    const fewShotExamples = dataset
+      .slice(0, 5)
+      .map((ex) => `User: ${ex.instruction}\nMira: ${ex.response}`)
+      .join("\n\n");
+
+    const prompt = `
+${SYSTEM_PROMPT}
+
+Here are a few example conversations for reference:
+${fewShotExamples}
+
+Now continue this new conversation:
+User: ${message}
+Mira:
+`;
+
+    const result = await model.generateContent(prompt);
+    const reply = result.response.text();
+
+    res.json({ reply });
+  } catch (error) {
+    console.error("Error in chat route:", error);
+    res.status(500).json({ error: "Failed to generate response" });
   }
 });
 
-module.exports = router;
+export default router;

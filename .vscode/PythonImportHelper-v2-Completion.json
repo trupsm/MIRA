@@ -40,6 +40,15 @@
         "documentation": {}
     },
     {
+        "label": "ollama",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "ollama",
+        "description": "ollama",
+        "detail": "ollama",
+        "documentation": {}
+    },
+    {
         "label": "openai",
         "kind": 6,
         "isExtraImport": true,
@@ -49,12 +58,11 @@
         "documentation": {}
     },
     {
-        "label": "ollama",
-        "kind": 6,
+        "label": "OpenAI",
+        "importPath": "openai",
+        "description": "openai",
         "isExtraImport": true,
-        "importPath": "ollama",
-        "description": "ollama",
-        "detail": "ollama",
+        "detail": "openai",
         "documentation": {}
     },
     {
@@ -76,25 +84,15 @@
         "documentation": {}
     },
     {
-        "label": "re",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "re",
-        "description": "re",
-        "detail": "re",
-        "documentation": {}
-    },
-    {
-        "label": "time",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "time",
-        "description": "time",
-        "detail": "time",
-        "documentation": {}
-    },
-    {
         "label": "datetime",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "timedelta",
         "importPath": "datetime",
         "description": "datetime",
         "isExtraImport": true,
@@ -119,20 +117,29 @@
         "documentation": {}
     },
     {
-        "label": "get_mira_prompt",
+        "label": "logging",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "logging",
+        "description": "logging",
+        "detail": "logging",
+        "documentation": {}
+    },
+    {
+        "label": "classify_severity_with_openai",
         "kind": 2,
         "importPath": "backend.services.mira_agent",
         "description": "backend.services.mira_agent",
-        "peekOfCode": "def get_mira_prompt():\n    return (\n        \"You are Mira — a warm, deeply empathetic mental health companion. \"\n        \"You listen closely, reflect emotions, and respond like a trusted friend. \"\n        \"You never give medical advice, you never dismiss pain, and you never use poetic or religious phrases. \"\n        \"When someone expresses hopelessness or thoughts of death, you respond with gentle validation and grounded empathy. \"\n        \"Keep replies 2–4 sentences, always ending with one gentle, open-ended question. \"\n        \"Example: If someone says 'I don’t want to wake up anymore', you might say:\\n\"\n        \"'It sounds like you’re feeling completely drained and wishing everything could stop for a while. \"\n        \"That’s such a painful place to be — and you don’t have to face it alone. What’s been feeling most unbearable lately?'\"",
+        "peekOfCode": "def classify_severity_with_openai(text: str):\n    \"\"\"Classify message severity via OpenAI (if available) or fallback heuristic.\"\"\"\n    t = text.lower()\n    # Quick heuristic fallback\n    def fallback():\n        if any(p in t for p in SEVERE_PHRASES):\n            return {\"label\": \"severe\", \"score\": 0.95}\n        if any(p in t for p in MODERATE_PHRASES):\n            return {\"label\": \"moderate\", \"score\": 0.6}\n        return {\"label\": \"none\", \"score\": 0.0}",
         "detail": "backend.services.mira_agent",
         "documentation": {}
     },
     {
-        "label": "classify_severity",
+        "label": "detect_severity_tier",
         "kind": 2,
         "importPath": "backend.services.mira_agent",
         "description": "backend.services.mira_agent",
-        "peekOfCode": "def classify_severity(text: str):\n    \"\"\"Hybrid rule + AI-based classifier.\"\"\"\n    text_lower = text.lower().strip()\n    label, score = \"none\", 0.0\n    # Keyword detection\n    if any(phrase in text_lower for phrase in SEVERE_KEYWORDS):\n        label, score = \"severe\", 0.95\n    elif any(phrase in text_lower for phrase in MODERATE_KEYWORDS):\n        label, score = \"moderate\", 0.7\n    # Fallback to AI if OpenAI is available",
+        "peekOfCode": "def detect_severity_tier(label: str, score: float) -> str:\n    \"\"\"Convert numeric score and label into tier.\"\"\"\n    if label == \"severe\" and score >= 0.9:\n        return \"extreme\"\n    elif label == \"severe\" or score >= 0.8:\n        return \"severe\"\n    elif label == \"moderate\" or score >= 0.5:\n        return \"moderate\"\n    else:\n        return \"none\"",
         "detail": "backend.services.mira_agent",
         "documentation": {}
     },
@@ -141,25 +148,7 @@
         "kind": 2,
         "importPath": "backend.services.mira_agent",
         "description": "backend.services.mira_agent",
-        "peekOfCode": "def query_mira(user_message: str) -> str:\n    \"\"\"Generate Mira's empathetic response using Ollama or OpenAI.\"\"\"\n    prompt = get_mira_prompt()\n    try:\n        r = ollama.chat(\n            model=OLLAMA_MODEL,\n            messages=[\n                {\"role\": \"system\", \"content\": prompt},\n                {\"role\": \"user\", \"content\": user_message}\n            ],",
-        "detail": "backend.services.mira_agent",
-        "documentation": {}
-    },
-    {
-        "label": "send_sms",
-        "kind": 2,
-        "importPath": "backend.services.mira_agent",
-        "description": "backend.services.mira_agent",
-        "peekOfCode": "def send_sms(phone, template_key, name, excerpt):\n    \"\"\"Send SMS with retries.\"\"\"\n    if not twilio:\n        raise RuntimeError(\"Twilio not configured\")\n    body = SMS_TEMPLATES[template_key].format(name=name or \"there\", excerpt=excerpt)\n    for i in range(3):\n        try:\n            msg = twilio.messages.create(body=body, from_=TWILIO_FROM, to=phone)\n            app.logger.info(f\"📩 SMS sent to {phone}, SID: {msg.sid}\")\n            return msg.sid",
-        "detail": "backend.services.mira_agent",
-        "documentation": {}
-    },
-    {
-        "label": "place_call",
-        "kind": 2,
-        "importPath": "backend.services.mira_agent",
-        "description": "backend.services.mira_agent",
-        "peekOfCode": "def place_call(phone):\n    \"\"\"Trigger emergency call via Twilio.\"\"\"\n    if not twilio:\n        raise RuntimeError(\"Twilio not configured\")\n    call = twilio.calls.create(to=phone, from_=TWILIO_FROM, url=\"http://demo.twilio.com/docs/voice.xml\")\n    app.logger.info(f\"📞 Emergency call placed to {phone}\")\n    return call.sid\n# ------------------ DATABASE HELPERS ------------------\ndef get_primary_contact(user_id):\n    if not supabase:",
+        "peekOfCode": "def query_mira(user_message: str, severity_level: str = \"none\") -> str:\n    \"\"\"Generate Mira's adaptive empathetic response via Ollama (fine-tuned) then fallback to OpenAI.\"\"\"\n    tone_map = {\n        \"none\": \"You are calm and kind, speaking like a caring friend. Be natural and supportive. Use gentle, short responses without giving advice.\",\n        \"moderate\": \"The user feels emotionally tired or hopeless. Use warmth and empathy to reassure them. Keep tone soft and human-like. Avoid giving advice or asking questions.\",\n        \"severe\": \"The user is in pain or distress. Be deeply compassionate, calm, and grounding. Avoid questions — focus on emotional safety and presence.\",\n        \"extreme\": \"The user may be suicidal or at immediate risk. Respond with gentle urgency and safety-focused empathy. Do not ask questions or suggest actions. Just provide calm reassurance and presence.\"\n    }\n    system_prompt = (\n        \"You are Mira, a compassionate mental health companion. Respond naturally like a caring human. \"",
         "detail": "backend.services.mira_agent",
         "documentation": {}
     },
@@ -168,25 +157,34 @@
         "kind": 2,
         "importPath": "backend.services.mira_agent",
         "description": "backend.services.mira_agent",
-        "peekOfCode": "def get_primary_contact(user_id):\n    if not supabase:\n        return None\n    try:\n        res = supabase.table(\"emergency_contacts\").select(\"*\").eq(\"user_id\", user_id).eq(\"is_primary\", True).limit(1).execute()\n        data = getattr(res, \"data\", None)\n        return data[0] if data else None\n    except Exception as e:\n        app.logger.error(\"⚠️ Supabase contact fetch error: %s\", e)\n        return None",
+        "peekOfCode": "def get_primary_contact(user_id):\n    \"\"\"Fetch user's primary emergency contact from Supabase\"\"\"\n    if not supabase:\n        return None\n    try:\n        r = supabase.table(\"emergency_contacts\") \\\n            .select(\"*\") \\\n            .eq(\"user_id\", user_id) \\\n            .eq(\"is_primary\", True) \\\n            .limit(1) \\",
         "detail": "backend.services.mira_agent",
         "documentation": {}
     },
     {
-        "label": "log_chat",
+        "label": "send_sms",
         "kind": 2,
         "importPath": "backend.services.mira_agent",
         "description": "backend.services.mira_agent",
-        "peekOfCode": "def log_chat(user_id, sender, message):\n    if not supabase:\n        return\n    try:\n        supabase.table(\"chat_history\").insert([{\n            \"user_id\": user_id,\n            \"sender\": sender,\n            \"message\": message,\n            \"created_at\": datetime.utcnow().replace(microsecond=0).isoformat() + \"Z\"\n        }]).execute()",
+        "peekOfCode": "def send_sms(phone, name, excerpt):\n    \"\"\"Send SMS via Twilio.\"\"\"\n    if not twilio:\n        raise RuntimeError(\"Twilio client not configured\")\n    body = SMS_TEMPLATES[\"urgent\"].format(contact_name=name or \"there\", excerpt=excerpt)\n    msg = twilio.messages.create(body=body, from_=TWILIO_FROM, to=phone)\n    app.logger.info(f\"📩 SMS sent to {phone}, SID: {getattr(msg, 'sid', None)}\")\n    return getattr(msg, \"sid\", None)\ndef place_call(phone):\n    \"\"\"Place call via Twilio.\"\"\"",
         "detail": "backend.services.mira_agent",
         "documentation": {}
     },
     {
-        "label": "log_crisis",
+        "label": "place_call",
         "kind": 2,
         "importPath": "backend.services.mira_agent",
         "description": "backend.services.mira_agent",
-        "peekOfCode": "def log_crisis(user_id, message, response, label, score, action, contact):\n    if not supabase:\n        return\n    try:\n        supabase.table(\"crisis_logs\").insert([{\n            \"user_id\": user_id,\n            \"message\": message,\n            \"model_response\": response,\n            \"severity\": label,\n            \"detected_at\": datetime.utcnow().replace(microsecond=0).isoformat() + \"Z\",",
+        "peekOfCode": "def place_call(phone):\n    \"\"\"Place call via Twilio.\"\"\"\n    if not twilio:\n        raise RuntimeError(\"Twilio client not configured\")\n    call = twilio.calls.create(to=phone, from_=TWILIO_FROM, url=\"http://demo.twilio.com/docs/voice.xml\")\n    app.logger.info(f\"📞 Call placed to {phone}, SID: {getattr(call, 'sid', None)}\")\n    return getattr(call, \"sid\", None)\ndef safe_insert(table: str, data: dict, dedupe_window_seconds: int = 2):\n    \"\"\"\n    Insert to Supabase but avoid near-duplicate inserts.",
+        "detail": "backend.services.mira_agent",
+        "documentation": {}
+    },
+    {
+        "label": "safe_insert",
+        "kind": 2,
+        "importPath": "backend.services.mira_agent",
+        "description": "backend.services.mira_agent",
+        "peekOfCode": "def safe_insert(table: str, data: dict, dedupe_window_seconds: int = 2):\n    \"\"\"\n    Insert to Supabase but avoid near-duplicate inserts.\n    Logic: fetch most recent row for (user_id, sender) and if message matches within dedupe_window_seconds, skip.\n    This prevents duplicate chat_history rows when routes get retried or double-called.\n    \"\"\"\n    if not supabase:\n        app.logger.debug(\"Supabase not configured; skipping insert to %s\", table)\n        return None\n    try:",
         "detail": "backend.services.mira_agent",
         "documentation": {}
     },
@@ -195,7 +193,7 @@
         "kind": 2,
         "importPath": "backend.services.mira_agent",
         "description": "backend.services.mira_agent",
-        "peekOfCode": "def health():\n    return jsonify({\"status\": \"ok\", \"service\": \"mira_agent\"})\n@app.route(\"/api/mira_chat\", methods=[\"POST\"])\ndef mira_chat():\n    data = request.json or {}\n    user_id = data.get(\"user_id\")\n    message = (data.get(\"message\") or \"\").strip()\n    if not user_id or not message:\n        return jsonify({\"error\": \"user_id and message required\"}), 400\n    log_chat(user_id, \"user\", message)",
+        "peekOfCode": "def health():\n    return jsonify({\"status\": \"ok\", \"service\": \"mira_agent\"})\n@app.route('/api/mira_chat', methods=['POST'])\ndef mira_chat():\n    data = request.json or {}\n    user_id = data.get(\"user_id\")\n    message = (data.get(\"message\") or \"\").strip()\n    if not user_id or not message:\n        return jsonify({\"error\": \"user_id and message required\"}), 400\n    # Log user message (dedupe-safe)",
         "detail": "backend.services.mira_agent",
         "documentation": {}
     },
@@ -204,16 +202,7 @@
         "kind": 2,
         "importPath": "backend.services.mira_agent",
         "description": "backend.services.mira_agent",
-        "peekOfCode": "def mira_chat():\n    data = request.json or {}\n    user_id = data.get(\"user_id\")\n    message = (data.get(\"message\") or \"\").strip()\n    if not user_id or not message:\n        return jsonify({\"error\": \"user_id and message required\"}), 400\n    log_chat(user_id, \"user\", message)\n    # Generate response\n    response = query_mira(message)\n    log_chat(user_id, \"mira\", response)",
-        "detail": "backend.services.mira_agent",
-        "documentation": {}
-    },
-    {
-        "label": "debug_contact",
-        "kind": 2,
-        "importPath": "backend.services.mira_agent",
-        "description": "backend.services.mira_agent",
-        "peekOfCode": "def debug_contact(user_id):\n    \"\"\"Temporary route to verify Supabase -> Flask -> Twilio contact flow.\"\"\"\n    try:\n        contact = get_primary_contact(user_id)\n        if not contact:\n            return jsonify({\"found\": False, \"message\": \"No contact found for user\"}), 404\n        return jsonify({\"found\": True, \"contact\": contact}), 200\n    except Exception as e:\n        return jsonify({\"error\": str(e)}), 500\n# ------------------ MAIN ------------------",
+        "peekOfCode": "def mira_chat():\n    data = request.json or {}\n    user_id = data.get(\"user_id\")\n    message = (data.get(\"message\") or \"\").strip()\n    if not user_id or not message:\n        return jsonify({\"error\": \"user_id and message required\"}), 400\n    # Log user message (dedupe-safe)\n    safe_insert(\"chat_history\", {\n        \"user_id\": user_id,\n        \"sender\": \"user\",",
         "detail": "backend.services.mira_agent",
         "documentation": {}
     },
@@ -222,7 +211,7 @@
         "kind": 5,
         "importPath": "backend.services.mira_agent",
         "description": "backend.services.mira_agent",
-        "peekOfCode": "os.environ[\"OLLAMA_HOST\"] = os.getenv(\"OLLAMA_HOST\", \"http://127.0.0.1:11434\")\napp = Flask(__name__)\n# Supabase config\nSUPABASE_URL = os.getenv(\"SUPABASE_URL\")\nSUPABASE_KEY = os.getenv(\"SUPABASE_SERVICE_ROLE_KEY\")\nsupabase = None\nif SUPABASE_URL and SUPABASE_KEY:\n    try:\n        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)\n    except Exception as e:",
+        "peekOfCode": "os.environ[\"OLLAMA_HOST\"] = os.getenv(\"OLLAMA_HOST\", \"http://127.0.0.1:11434\")\napp = Flask(__name__)\nlogging.basicConfig(level=logging.INFO)\n# Supabase setup\nSUPABASE_URL = os.getenv(\"SUPABASE_URL\")\nSUPABASE_KEY = os.getenv(\"SUPABASE_SERVICE_ROLE_KEY\")\nsupabase = None\nif SUPABASE_URL and SUPABASE_KEY:\n    try:\n        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)",
         "detail": "backend.services.mira_agent",
         "documentation": {}
     },
@@ -231,7 +220,7 @@
         "kind": 5,
         "importPath": "backend.services.mira_agent",
         "description": "backend.services.mira_agent",
-        "peekOfCode": "app = Flask(__name__)\n# Supabase config\nSUPABASE_URL = os.getenv(\"SUPABASE_URL\")\nSUPABASE_KEY = os.getenv(\"SUPABASE_SERVICE_ROLE_KEY\")\nsupabase = None\nif SUPABASE_URL and SUPABASE_KEY:\n    try:\n        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)\n    except Exception as e:\n        app.logger.error(\"❌ Supabase init error: %s\", e)",
+        "peekOfCode": "app = Flask(__name__)\nlogging.basicConfig(level=logging.INFO)\n# Supabase setup\nSUPABASE_URL = os.getenv(\"SUPABASE_URL\")\nSUPABASE_KEY = os.getenv(\"SUPABASE_SERVICE_ROLE_KEY\")\nsupabase = None\nif SUPABASE_URL and SUPABASE_KEY:\n    try:\n        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)\n        app.logger.info(\"✅ Supabase initialized\")",
         "detail": "backend.services.mira_agent",
         "documentation": {}
     },
@@ -240,7 +229,7 @@
         "kind": 5,
         "importPath": "backend.services.mira_agent",
         "description": "backend.services.mira_agent",
-        "peekOfCode": "SUPABASE_URL = os.getenv(\"SUPABASE_URL\")\nSUPABASE_KEY = os.getenv(\"SUPABASE_SERVICE_ROLE_KEY\")\nsupabase = None\nif SUPABASE_URL and SUPABASE_KEY:\n    try:\n        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)\n    except Exception as e:\n        app.logger.error(\"❌ Supabase init error: %s\", e)\nelse:\n    app.logger.warning(\"⚠️ Supabase not configured\")",
+        "peekOfCode": "SUPABASE_URL = os.getenv(\"SUPABASE_URL\")\nSUPABASE_KEY = os.getenv(\"SUPABASE_SERVICE_ROLE_KEY\")\nsupabase = None\nif SUPABASE_URL and SUPABASE_KEY:\n    try:\n        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)\n        app.logger.info(\"✅ Supabase initialized\")\n    except Exception as e:\n        app.logger.error(f\"❌ Supabase init error: {e}\")\nelse:",
         "detail": "backend.services.mira_agent",
         "documentation": {}
     },
@@ -249,7 +238,7 @@
         "kind": 5,
         "importPath": "backend.services.mira_agent",
         "description": "backend.services.mira_agent",
-        "peekOfCode": "SUPABASE_KEY = os.getenv(\"SUPABASE_SERVICE_ROLE_KEY\")\nsupabase = None\nif SUPABASE_URL and SUPABASE_KEY:\n    try:\n        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)\n    except Exception as e:\n        app.logger.error(\"❌ Supabase init error: %s\", e)\nelse:\n    app.logger.warning(\"⚠️ Supabase not configured\")\n# Twilio config",
+        "peekOfCode": "SUPABASE_KEY = os.getenv(\"SUPABASE_SERVICE_ROLE_KEY\")\nsupabase = None\nif SUPABASE_URL and SUPABASE_KEY:\n    try:\n        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)\n        app.logger.info(\"✅ Supabase initialized\")\n    except Exception as e:\n        app.logger.error(f\"❌ Supabase init error: {e}\")\nelse:\n    app.logger.warning(\"⚠️ Supabase not configured\")",
         "detail": "backend.services.mira_agent",
         "documentation": {}
     },
@@ -258,7 +247,7 @@
         "kind": 5,
         "importPath": "backend.services.mira_agent",
         "description": "backend.services.mira_agent",
-        "peekOfCode": "supabase = None\nif SUPABASE_URL and SUPABASE_KEY:\n    try:\n        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)\n    except Exception as e:\n        app.logger.error(\"❌ Supabase init error: %s\", e)\nelse:\n    app.logger.warning(\"⚠️ Supabase not configured\")\n# Twilio config\nTWILIO_SID = os.getenv(\"TWILIO_ACCOUNT_SID\")",
+        "peekOfCode": "supabase = None\nif SUPABASE_URL and SUPABASE_KEY:\n    try:\n        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)\n        app.logger.info(\"✅ Supabase initialized\")\n    except Exception as e:\n        app.logger.error(f\"❌ Supabase init error: {e}\")\nelse:\n    app.logger.warning(\"⚠️ Supabase not configured\")\n# Twilio setup",
         "detail": "backend.services.mira_agent",
         "documentation": {}
     },
@@ -267,7 +256,7 @@
         "kind": 5,
         "importPath": "backend.services.mira_agent",
         "description": "backend.services.mira_agent",
-        "peekOfCode": "TWILIO_SID = os.getenv(\"TWILIO_ACCOUNT_SID\")\nTWILIO_TOKEN = os.getenv(\"TWILIO_AUTH_TOKEN\")\nTWILIO_FROM = os.getenv(\"TWILIO_FROM_NUMBER\")\ntwilio = None\nif TWILIO_SID and TWILIO_TOKEN:\n    try:\n        twilio = TwilioClient(TWILIO_SID, TWILIO_TOKEN)\n    except Exception as e:\n        app.logger.error(\"❌ Twilio init error: %s\", e)\nelse:",
+        "peekOfCode": "TWILIO_SID = os.getenv(\"TWILIO_ACCOUNT_SID\")\nTWILIO_TOKEN = os.getenv(\"TWILIO_AUTH_TOKEN\")\nTWILIO_FROM = os.getenv(\"TWILIO_FROM_NUMBER\")\ntwilio = None\nif TWILIO_SID and TWILIO_TOKEN:\n    try:\n        twilio = TwilioClient(TWILIO_SID, TWILIO_TOKEN)\n        app.logger.info(\"✅ Twilio initialized\")\n    except Exception as e:\n        app.logger.error(f\"❌ Twilio init error: {e}\")",
         "detail": "backend.services.mira_agent",
         "documentation": {}
     },
@@ -276,7 +265,7 @@
         "kind": 5,
         "importPath": "backend.services.mira_agent",
         "description": "backend.services.mira_agent",
-        "peekOfCode": "TWILIO_TOKEN = os.getenv(\"TWILIO_AUTH_TOKEN\")\nTWILIO_FROM = os.getenv(\"TWILIO_FROM_NUMBER\")\ntwilio = None\nif TWILIO_SID and TWILIO_TOKEN:\n    try:\n        twilio = TwilioClient(TWILIO_SID, TWILIO_TOKEN)\n    except Exception as e:\n        app.logger.error(\"❌ Twilio init error: %s\", e)\nelse:\n    app.logger.warning(\"⚠️ Twilio not configured\")",
+        "peekOfCode": "TWILIO_TOKEN = os.getenv(\"TWILIO_AUTH_TOKEN\")\nTWILIO_FROM = os.getenv(\"TWILIO_FROM_NUMBER\")\ntwilio = None\nif TWILIO_SID and TWILIO_TOKEN:\n    try:\n        twilio = TwilioClient(TWILIO_SID, TWILIO_TOKEN)\n        app.logger.info(\"✅ Twilio initialized\")\n    except Exception as e:\n        app.logger.error(f\"❌ Twilio init error: {e}\")\nelse:",
         "detail": "backend.services.mira_agent",
         "documentation": {}
     },
@@ -285,7 +274,7 @@
         "kind": 5,
         "importPath": "backend.services.mira_agent",
         "description": "backend.services.mira_agent",
-        "peekOfCode": "TWILIO_FROM = os.getenv(\"TWILIO_FROM_NUMBER\")\ntwilio = None\nif TWILIO_SID and TWILIO_TOKEN:\n    try:\n        twilio = TwilioClient(TWILIO_SID, TWILIO_TOKEN)\n    except Exception as e:\n        app.logger.error(\"❌ Twilio init error: %s\", e)\nelse:\n    app.logger.warning(\"⚠️ Twilio not configured\")\n# OpenAI config",
+        "peekOfCode": "TWILIO_FROM = os.getenv(\"TWILIO_FROM_NUMBER\")\ntwilio = None\nif TWILIO_SID and TWILIO_TOKEN:\n    try:\n        twilio = TwilioClient(TWILIO_SID, TWILIO_TOKEN)\n        app.logger.info(\"✅ Twilio initialized\")\n    except Exception as e:\n        app.logger.error(f\"❌ Twilio init error: {e}\")\nelse:\n    app.logger.warning(\"⚠️ Twilio not configured\")",
         "detail": "backend.services.mira_agent",
         "documentation": {}
     },
@@ -294,7 +283,7 @@
         "kind": 5,
         "importPath": "backend.services.mira_agent",
         "description": "backend.services.mira_agent",
-        "peekOfCode": "twilio = None\nif TWILIO_SID and TWILIO_TOKEN:\n    try:\n        twilio = TwilioClient(TWILIO_SID, TWILIO_TOKEN)\n    except Exception as e:\n        app.logger.error(\"❌ Twilio init error: %s\", e)\nelse:\n    app.logger.warning(\"⚠️ Twilio not configured\")\n# OpenAI config\nOPENAI_API_KEY = os.getenv(\"OPENAI_API_KEY\")",
+        "peekOfCode": "twilio = None\nif TWILIO_SID and TWILIO_TOKEN:\n    try:\n        twilio = TwilioClient(TWILIO_SID, TWILIO_TOKEN)\n        app.logger.info(\"✅ Twilio initialized\")\n    except Exception as e:\n        app.logger.error(f\"❌ Twilio init error: {e}\")\nelse:\n    app.logger.warning(\"⚠️ Twilio not configured\")\n# OpenAI fallback (use new OpenAI client when available)",
         "detail": "backend.services.mira_agent",
         "documentation": {}
     },
@@ -303,7 +292,16 @@
         "kind": 5,
         "importPath": "backend.services.mira_agent",
         "description": "backend.services.mira_agent",
-        "peekOfCode": "OPENAI_API_KEY = os.getenv(\"OPENAI_API_KEY\")\nif OPENAI_API_KEY:\n    openai.api_key = OPENAI_API_KEY\n# Default Ollama model\nOLLAMA_MODEL = os.getenv(\"OLLAMA_MODEL\", \"mistral:latest\")\n# ------------------ HELPER PROMPTS ------------------\ndef get_mira_prompt():\n    return (\n        \"You are Mira — a warm, deeply empathetic mental health companion. \"\n        \"You listen closely, reflect emotions, and respond like a trusted friend. \"",
+        "peekOfCode": "OPENAI_API_KEY = os.getenv(\"OPENAI_API_KEY\")\nopenai_client = None\nif OPENAI_API_KEY:\n    try:\n        openai_client = OpenAI(api_key=OPENAI_API_KEY)\n        app.logger.info(\"✅ OpenAI client configured\")\n    except Exception as e:\n        app.logger.error(f\"❌ OpenAI init error: {e}\")\n# Default Ollama model (trim whitespace)\nOLLAMA_MODEL = os.getenv(\"OLLAMA_MODEL\", \"tinyllama:1.1b\").strip()",
+        "detail": "backend.services.mira_agent",
+        "documentation": {}
+    },
+    {
+        "label": "openai_client",
+        "kind": 5,
+        "importPath": "backend.services.mira_agent",
+        "description": "backend.services.mira_agent",
+        "peekOfCode": "openai_client = None\nif OPENAI_API_KEY:\n    try:\n        openai_client = OpenAI(api_key=OPENAI_API_KEY)\n        app.logger.info(\"✅ OpenAI client configured\")\n    except Exception as e:\n        app.logger.error(f\"❌ OpenAI init error: {e}\")\n# Default Ollama model (trim whitespace)\nOLLAMA_MODEL = os.getenv(\"OLLAMA_MODEL\", \"tinyllama:1.1b\").strip()\n# ------------------ CONSTANTS ------------------",
         "detail": "backend.services.mira_agent",
         "documentation": {}
     },
@@ -312,25 +310,7 @@
         "kind": 5,
         "importPath": "backend.services.mira_agent",
         "description": "backend.services.mira_agent",
-        "peekOfCode": "OLLAMA_MODEL = os.getenv(\"OLLAMA_MODEL\", \"mistral:latest\")\n# ------------------ HELPER PROMPTS ------------------\ndef get_mira_prompt():\n    return (\n        \"You are Mira — a warm, deeply empathetic mental health companion. \"\n        \"You listen closely, reflect emotions, and respond like a trusted friend. \"\n        \"You never give medical advice, you never dismiss pain, and you never use poetic or religious phrases. \"\n        \"When someone expresses hopelessness or thoughts of death, you respond with gentle validation and grounded empathy. \"\n        \"Keep replies 2–4 sentences, always ending with one gentle, open-ended question. \"\n        \"Example: If someone says 'I don’t want to wake up anymore', you might say:\\n\"",
-        "detail": "backend.services.mira_agent",
-        "documentation": {}
-    },
-    {
-        "label": "SEVERE_KEYWORDS",
-        "kind": 5,
-        "importPath": "backend.services.mira_agent",
-        "description": "backend.services.mira_agent",
-        "peekOfCode": "SEVERE_KEYWORDS = [\n    \"kill myself\", \"end my life\", \"suicide\", \"take my own life\",\n    \"i want to die\", \"no reason to live\", \"goodbye forever\",\n    \"i have a plan\", \"ready to die\", \"done with life\", \"tonight is the night\"\n]\nMODERATE_KEYWORDS = [\n    \"tired of living\", \"hopeless\", \"nothing matters\", \"can't go on\",\n    \"worthless\", \"wish i could sleep forever\", \"want to disappear\",\n    \"emotionally exhausted\", \"give up\", \"done with everything\"\n]",
-        "detail": "backend.services.mira_agent",
-        "documentation": {}
-    },
-    {
-        "label": "MODERATE_KEYWORDS",
-        "kind": 5,
-        "importPath": "backend.services.mira_agent",
-        "description": "backend.services.mira_agent",
-        "peekOfCode": "MODERATE_KEYWORDS = [\n    \"tired of living\", \"hopeless\", \"nothing matters\", \"can't go on\",\n    \"worthless\", \"wish i could sleep forever\", \"want to disappear\",\n    \"emotionally exhausted\", \"give up\", \"done with everything\"\n]\ndef classify_severity(text: str):\n    \"\"\"Hybrid rule + AI-based classifier.\"\"\"\n    text_lower = text.lower().strip()\n    label, score = \"none\", 0.0\n    # Keyword detection",
+        "peekOfCode": "OLLAMA_MODEL = os.getenv(\"OLLAMA_MODEL\", \"tinyllama:1.1b\").strip()\n# ------------------ CONSTANTS ------------------\nSMS_TEMPLATES = {\n    \"urgent\": \"URGENT (confidential): {contact_name}, your contact may be at immediate risk. Excerpt: \\\"{excerpt}\\\". Please reach out or ensure their safety now.\"\n}\nSEVERE_PHRASES = [\n    \"i want to die\", \"kill myself\", \"end my life\", \"i have a plan\",\n    \"going to do it\", \"suicide\", \"no reason to live\", \"goodbye forever\"\n]\nMODERATE_PHRASES = [",
         "detail": "backend.services.mira_agent",
         "documentation": {}
     },
@@ -339,7 +319,25 @@
         "kind": 5,
         "importPath": "backend.services.mira_agent",
         "description": "backend.services.mira_agent",
-        "peekOfCode": "SMS_TEMPLATES = {\n    \"moderate\": \"Hi {name}, Mira alert: your contact is in distress. Excerpt: \\\"{excerpt}\\\". Please reach out when possible.\",\n    \"urgent\": \"🚨 URGENT: {name}, your contact may be at immediate risk. Excerpt: \\\"{excerpt}\\\". Please contact them or emergency services now.\"\n}\ndef send_sms(phone, template_key, name, excerpt):\n    \"\"\"Send SMS with retries.\"\"\"\n    if not twilio:\n        raise RuntimeError(\"Twilio not configured\")\n    body = SMS_TEMPLATES[template_key].format(name=name or \"there\", excerpt=excerpt)\n    for i in range(3):",
+        "peekOfCode": "SMS_TEMPLATES = {\n    \"urgent\": \"URGENT (confidential): {contact_name}, your contact may be at immediate risk. Excerpt: \\\"{excerpt}\\\". Please reach out or ensure their safety now.\"\n}\nSEVERE_PHRASES = [\n    \"i want to die\", \"kill myself\", \"end my life\", \"i have a plan\",\n    \"going to do it\", \"suicide\", \"no reason to live\", \"goodbye forever\"\n]\nMODERATE_PHRASES = [\n    \"can't go on\", \"tired of living\", \"hopeless\", \"nothing matters\",\n    \"want to disappear\", \"give up\", \"done with life\"",
+        "detail": "backend.services.mira_agent",
+        "documentation": {}
+    },
+    {
+        "label": "SEVERE_PHRASES",
+        "kind": 5,
+        "importPath": "backend.services.mira_agent",
+        "description": "backend.services.mira_agent",
+        "peekOfCode": "SEVERE_PHRASES = [\n    \"i want to die\", \"kill myself\", \"end my life\", \"i have a plan\",\n    \"going to do it\", \"suicide\", \"no reason to live\", \"goodbye forever\"\n]\nMODERATE_PHRASES = [\n    \"can't go on\", \"tired of living\", \"hopeless\", \"nothing matters\",\n    \"want to disappear\", \"give up\", \"done with life\"\n]\n# ------------------ HELPERS ------------------\ndef classify_severity_with_openai(text: str):",
+        "detail": "backend.services.mira_agent",
+        "documentation": {}
+    },
+    {
+        "label": "MODERATE_PHRASES",
+        "kind": 5,
+        "importPath": "backend.services.mira_agent",
+        "description": "backend.services.mira_agent",
+        "peekOfCode": "MODERATE_PHRASES = [\n    \"can't go on\", \"tired of living\", \"hopeless\", \"nothing matters\",\n    \"want to disappear\", \"give up\", \"done with life\"\n]\n# ------------------ HELPERS ------------------\ndef classify_severity_with_openai(text: str):\n    \"\"\"Classify message severity via OpenAI (if available) or fallback heuristic.\"\"\"\n    t = text.lower()\n    # Quick heuristic fallback\n    def fallback():",
         "detail": "backend.services.mira_agent",
         "documentation": {}
     }
